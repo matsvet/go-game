@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Тренажер Го (Вэйци) — 9х9 для новичков</title>
+  <link rel="stylesheet" href="src/pages/game/ui/game.css">
+</head>
+<body>
+
+  <!-- Шапка приложения -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon"></div>
+      <div class="brand-text">
+        <h1>Тренажер Го (Вэйци) <span class="badge-size" id="headerBoardTag">9 × 9</span></h1>
+        <p>Интерактивная доска для начинающих с подсказками дыханий</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="btnRules" title="Правила игры Го">
+        <span>📖</span> Правила
+      </button>
+      <button class="btn-icon" id="btnAudioToggle" title="Звук">
+        <span id="audioIcon">🔊</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Основной контейнер игры -->
+  <main class="main-container">
+
+    <!-- Левая колонка: Игровое поле -->
+    <div class="board-wrapper">
+      <div class="board-outer-bezel">
+        <div class="board-frame" id="boardFrame">
+          <!-- Интерактивная векторная SVG доска Го -->
+          <svg id="goBoardSvg" viewBox="0 0 540 540" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <!-- Реалистичная объемная тень камней -->
+              <filter id="stoneShadow" x="-25%" y="-25%" width="160%" height="160%">
+                <feDropShadow dx="2" dy="5" stdDeviation="3.5" flood-color="#000000" flood-opacity="0.65"/>
+              </filter>
+
+              <!-- 3D градиент для Черного камня (сланец/юньцзи) -->
+              <radialGradient id="blackStoneGrad" cx="35%" cy="30%" r="65%">
+                <stop offset="0%" stop-color="#555555"/>
+                <stop offset="35%" stop-color="#242424"/>
+                <stop offset="75%" stop-color="#111111"/>
+                <stop offset="100%" stop-color="#040404"/>
+              </radialGradient>
+
+              <!-- 3D градиент для Белого камня (ракушка/лунный камень) -->
+              <radialGradient id="whiteStoneGrad" cx="35%" cy="30%" r="65%">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="38%" stop-color="#f4f4f4"/>
+                <stop offset="78%" stop-color="#dddad4"/>
+                <stop offset="100%" stop-color="#b6b0a3"/>
+              </radialGradient>
+            </defs>
+
+            <!-- Слой сетки линий и точек Хоси -->
+            <g id="gridLayer"></g>
+
+            <!-- Слой подсветки территории и подсказок хода -->
+            <g id="highlightLayer"></g>
+
+            <!-- Слой выставленных камней -->
+            <g id="stonesLayer"></g>
+
+            <!-- Слой маркеров дыханий (Атари / 1-2 дамэ) -->
+            <g id="libertiesLayer"></g>
+
+            <!-- Слой призрачного камня при наведении мыши -->
+            <g id="ghostLayer"></g>
+
+            <!-- Слой прозрачных зон кликов (Hit Targets) -->
+            <g id="hitTargetsLayer"></g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Статусный баннер под доской -->
+      <div class="board-banner">
+        <div class="banner-status">
+          <div class="banner-dot" id="statusDot"></div>
+          <span id="statusMessage">Ход Черных (вы)</span>
+        </div>
+        <div id="moveCounterText" style="color: var(--text-muted); font-size: 0.82rem;">Ход: 1</div>
+      </div>
+
+      <!-- Карусель подсказок, правил и лайфхаков Го (с минутным таймером и лоадером) -->
+      <div class="tips-carousel" id="tipsCarousel" title="Наведите курсор, чтобы приостановить смену подсказки">
+        <div class="tips-loader-track">
+          <div class="tips-loader-fill" id="tipsLoaderFill"></div>
+        </div>
+        <div class="tips-header">
+          <div class="tips-tag-group">
+            <span class="tips-badge">💡 Шпаргалка Го</span>
+            <span class="tips-counter" id="tipsCounter">1 / 18</span>
+          </div>
+          <div class="tips-controls">
+            <button class="tips-ctrl-btn" id="btnTipPrev" title="Предыдущая подсказка">◀</button>
+            <button class="tips-ctrl-btn" id="btnTipPause" title="Пауза / Возобновить автосмену">⏸</button>
+            <button class="tips-ctrl-btn" id="btnTipNext" title="Следующая подсказка">▶</button>
+          </div>
+        </div>
+        <div class="tips-content" id="tipsContent">
+          <div class="tips-headline" id="tipHeadline">🎯 Окружай пустоту, а не забивай доску</div>
+          <div class="tips-desc" id="tipDesc">
+            Очки начисляются за пустые перекрестки внутри вашего забора. Не заполняйте свою территорию камнями — этим вы не увеличиваете счет, а крадете дыхания у своих камней и рискуете потерять всю группу!
+          </div>
+          <div class="tips-term-pill" id="tipTerms">
+            <span>📚 <strong>Термины:</strong> Территория (Дзи), Самоудушение (Дамэ-дзумари)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Правая колонка: Панель управления и статистика -->
+    <aside class="sidebar">
+
+      <!-- Карточка выбора размера доски -->
+      <div class="panel-card" style="margin-bottom: 14px;">
+        <div class="card-title">
+          <span>Размер доски</span>
+          <span id="boardSizeBadge" class="diff-badge" style="background: rgba(245, 158, 11, 0.16); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">9 × 9 (Быстрая)</span>
+        </div>
+        <div class="board-size-control" id="boardSizeControl" style="margin-top: 6px;">
+          <button class="diff-btn active" data-size="9" title="9×9: Быстрая учебная партия (~5-10 мин)">9×9</button>
+          <button class="diff-btn" data-size="11" title="11×11: Компактная партия">11×11</button>
+          <button class="diff-btn" data-size="13" title="13×13: Средняя классическая доска (~15-20 мин)">13×13</button>
+          <button class="diff-btn" data-size="15" title="15×15: Промежуточный формат">15×15</button>
+          <button class="diff-btn" data-size="19" title="19×19: Классическая турнирная доска Го">19×19</button>
+        </div>
+      </div>
+
+      <!-- Карточка статуса партии -->
+      <div class="panel-card">
+        <div class="card-title">
+          <span>Участники партии</span>
+          <span id="gameModeBadge" style="font-size: 0.72rem; color: var(--accent);">vs Компьютер</span>
+        </div>
+
+        <div class="players-grid">
+          <!-- Черные (Игрок) -->
+          <div class="player-card active" id="cardBlack">
+            <span class="turn-badge">ХОД</span>
+            <div class="player-stone black"></div>
+            <div class="player-info">
+              <div class="player-name">Черные</div>
+              <div class="player-role" id="blackRoleLabel">Игрок</div>
+            </div>
+            <div class="prisoners-box" title="Пленники (захваченные белые камни)">
+              <span>Пленники:</span>
+              <span class="prisoners-count" id="blackPrisoners">0</span>
+            </div>
+          </div>
+
+          <!-- Белые (Компьютер / Игрок 2) -->
+          <div class="player-card" id="cardWhite">
+            <span class="turn-badge">ХОД</span>
+            <div class="player-stone white"></div>
+            <div class="player-info">
+              <div class="player-name">Белые</div>
+              <div class="player-role" id="whiteRoleLabel">Компьютер</div>
+            </div>
+            <div class="prisoners-box" title="Пленники (захваченные черные камни)">
+              <span>Пленники:</span>
+              <span class="prisoners-count" id="whitePrisoners">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Индикатор баланса сил (Оценка позиции) -->
+        <div class="lead-bar-wrapper">
+          <div class="lead-bar-header">
+            <span id="leadBlackPercent">Черные 50%</span>
+            <span id="leadStatusText">Равная позиция</span>
+            <span id="leadWhitePercent">Белые 50%</span>
+          </div>
+          <div class="lead-progress-track">
+            <div class="lead-progress-fill" id="leadProgressFill" style="width: 50%;"></div>
+          </div>
+        </div>
+
+        <!-- Кнопки управления -->
+        <div class="actions-grid">
+          <button class="btn btn-secondary" id="btnPass" title="Пропустить текущий ход">
+            <span>✋</span> Пас
+          </button>
+          <button class="btn btn-secondary" id="btnUndo" title="Отменить последний ход (горячая клавиша Z)">
+            <span>↩️</span> Ход назад
+          </button>
+          <button class="btn btn-secondary" id="btnHint" title="Получить рекомендацию тренера (горячая клавиша H)">
+            <span>💡</span> Подсказка
+          </button>
+          <button class="btn btn-danger" id="btnRestart" title="Начать игру заново (горячая клавиша R)">
+            <span>🔄</span> Заново
+          </button>
+        </div>
+
+        <!-- Обучающее пояснение подсказки -->
+        <div class="hint-box" id="hintExplanation"></div>
+      </div>
+
+      <!-- Карточка настроек режима обучения -->
+      <div class="panel-card">
+        <div class="card-title">Режим обучения & AI</div>
+
+        <div class="toggle-list">
+          <!-- Чекбокс: Играть против компьютера -->
+          <label class="toggle-item">
+            <div class="toggle-label">
+              <span class="toggle-title">Против компьютера</span>
+              <span class="toggle-desc">Компьютер играет белыми</span>
+            </div>
+            <div class="switch">
+              <input type="checkbox" id="chkVsAi" checked>
+              <span class="slider"></span>
+            </div>
+          </label>
+
+          <!-- Чекбокс: Показать дыхания (Дамэ / Атари) -->
+          <label class="toggle-item">
+            <div class="toggle-label">
+              <span class="toggle-title">Показать дыхания</span>
+              <span class="toggle-desc">Подсветка камней под угрозой (1-2 дамэ)</span>
+            </div>
+            <div class="switch">
+              <input type="checkbox" id="chkShowLiberties">
+              <span class="slider"></span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Выбор движка: KataGo Metal vs Встроенный -->
+        <div class="difficulty-block" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+          <div class="diff-header">
+            <span class="diff-title">Движок ИИ</span>
+            <span id="katagoStatusBadge" class="diff-badge engine-status">Проверка...</span>
+          </div>
+          <div class="difficulty-control" style="grid-template-columns: 1fr 1fr; margin-top: 6px;">
+            <button class="diff-btn active" id="btnEngineKataGo" data-engine="katago" title="Нейросеть мирового уровня на Metal GPU">🤖 KataGo (GPU)</button>
+            <button class="diff-btn" id="btnEngineBuiltin" data-engine="builtin" title="Встроенный алгоритм без сервера">⚡ Встроенный</button>
+          </div>
+        </div>
+
+        <!-- Селектор сложности ИИ -->
+        <div class="difficulty-block" style="margin-top: 12px;">
+          <div class="diff-header">
+            <span class="diff-title">Сила игры / Визиты</span>
+            <span id="diffDescBadge" class="diff-badge">Любитель</span>
+          </div>
+          <div class="difficulty-control">
+            <button class="diff-btn" data-level="easy" title="Новичок: быстрые ходы с человеческими ошибками">Новичок</button>
+            <button class="diff-btn active" data-level="medium" title="Любитель: сбалансированная игра">Любитель</button>
+            <button class="diff-btn" data-level="hard" title="Мастер: глубокий тактический расчет">Мастер</button>
+            <button class="diff-btn" id="diffBtnGod" data-level="god" title="Максимальный уровень нейросети (600 визитов)">Бог Го</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Кнопка подсчета очков -->
+      <button class="btn btn-primary" id="btnScoreNow">
+        <span>🏁</span> Завершить и подсчитать очки
+      </button>
+
+    </aside>
+
+  </main>
+
+  <!-- Модальное окно: Правила Го -->
+  <div class="modal-overlay" id="modalRules">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Базовые правила Го (Вэйци) для новичка</h2>
+        <button class="modal-close" id="btnCloseRules">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="rule-card">
+          <h3>🎯 1. Цель игры</h3>
+          <p>Окружить своими камнями как можно больше свободной территории на доске и захватить камни противника. Камни ставятся <strong>строго на пересечения линий</strong>, а не в клетки. Черные ходят первыми.</p>
+        </div>
+
+        <div class="rule-card">
+          <h3>💨 2. Дыхания (Дамэ) и захват камней</h3>
+          <p>Каждое свободное соседнее пересечение по вертикали и горизонтали — это <strong>«дыхание»</strong> камня или соединенной группы камней. Если у группы не остается свободных дыханий, она <strong>снимается с доски</strong> как пленники соперника.</p>
+        </div>
+
+        <div class="rule-card">
+          <h3>⚡ 3. Атари</h3>
+          <p>Ситуация, когда у камня или группы осталось <strong>ровно 1 дыхание</strong>. Следующим ходом соперник может её захватить, если группа не убежит или не контратакует.</p>
+        </div>
+
+        <div class="rule-card">
+          <h3>🚫 4. Запрет самоубийства</h3>
+          <p>Нельзя ставить камень в точку, где у него сразу будет 0 дыханий, <em>кроме случая</em>, когда этот ход немедленно захватывает (съедает) камни противника, тем самым освобождая дыхания.</p>
+        </div>
+
+        <div class="rule-card">
+          <h3>♾️ 5. Правило Ко (Вечная борьба)</h3>
+          <p>Запрещено делать ход, который в точности повторяет предыдущую позицию на доске (мгновенное взаимное перезахватывание одного камня). Чтобы повторить захват, нужно сначала сделать ход в другом месте (Ко-угрозу).</p>
+        </div>
+
+        <div class="rule-card">
+          <h3>🏁 6. Завершение партии</h3>
+          <p>Когда оба игрока по очереди нажимают <strong>«Пас»</strong>, игра завершается. Подсчитываются: окружённая территория и камни на доске. Белые получают коми за второй ход (5.5, 6.5 или 7.5 очка в зависимости от размера доски).</p>
+        </div>
+
+        <div class="rule-card" style="border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.08);">
+          <h3 style="color: #fca5a5;">⚠️ Главная ошибка новичка: не заполняйте свою территорию!</h3>
+          <p>В Го цель — <strong>окружать пустые перекрестки</strong>, а не заполнять их камнями! Окруженная территория уже принадлежит вам. Если вы продолжаете ставить камни внутрь своей же территории, вы <strong>уничтожаете дыхания своих камней</strong> (самоудушение / дамэ-дзумари). Если у группы останется 1 дыхание, соперник имеет полное право поставить туда камень и <strong>съесть всю вашу армию разом</strong>! Когда соперник пасует, вы можете <strong>пасовать в ответ</strong>, чтобы завершить партию и узнать результат.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно: Завершение партии и подсчет очков -->
+  <div class="modal-overlay" id="modalGameOver">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Результаты партии</h2>
+        <button class="modal-close" id="btnCloseGameOver">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="winner-banner" id="winnerAnnouncement">Победа Черных!</div>
+        
+        <div class="score-summary">
+          <div class="score-card">
+            <div style="font-weight: 700; color: #fff;">Черные</div>
+            <div class="score-number" id="finalScoreBlack">0.0</div>
+            <div class="score-breakdown" id="breakdownBlack">
+              Территория: 0<br>
+              Камни на доске: 0
+            </div>
+          </div>
+
+          <div class="score-card">
+            <div style="font-weight: 700; color: #fff;">Белые</div>
+            <div class="score-number" id="finalScoreWhite">5.5</div>
+            <div class="score-breakdown" id="breakdownWhite">
+              Территория: 0<br>
+              Камни на доске: 0<br>
+              Коми: +5.5
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btnRestartFromModal" style="margin-top: 10px;">
+          <span>🔄</span> Начать новую партию
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Контейнер всплывающих уведомлений -->
+  <div id="toastContainer"></div>
+
+  <script src="src/pages/game/model/rules.js"></script>
+  <script src="src/pages/game/model/heuristic.js"></script>
+  <script src="src/pages/game/api/katago.js"></script>
+  <script src="src/pages/game/ui/sound.js"></script>
+  <script src="src/pages/game/ui/board.js"></script>
+  <script src="src/pages/game/ui/game-panel.js"></script>
+  <script src="src/pages/game/ui/tips.js"></script>
+  <script src="src/pages/game/index.js"></script>
+</body>
+</html>
