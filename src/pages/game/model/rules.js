@@ -72,6 +72,20 @@ const GoRules = (() => {
       this.reset(size);
     }
 
+    static fromMoves(size, moves) {
+      if (![9, 11, 13, 15, 19].includes(size) || !Array.isArray(moves)) {
+        throw new Error('Неподдерживаемый размер доски или журнал ходов');
+      }
+      const game = new GoGame(size);
+      for (const [index, entry] of moves.entries()) {
+        if (entry?.color !== game.turn ||
+            !(entry.move === null ? game.pass() : entry.move && game.playMove(entry.move.r, entry.move.c).valid)) {
+          throw new Error(`Недопустимый ход №${index + 1}`);
+        }
+      }
+      return game;
+    }
+
     reset(size = this.size) {
       this.size = size;
       this.board = Array(this.size).fill(null).map(() => Array(this.size).fill(EMPTY));
@@ -284,9 +298,16 @@ const GoRules = (() => {
       this.isGameOver = true;
     }
 
+    resumePlay() {
+      if (this.consecutivePasses === 2) this.undo(2);
+      else this.isGameOver = false;
+    }
+
     // ─── Подсчет очков по площади (камни и окружённая территория) ───
-    calculateScore() {
-      const b = this.board;
+    calculateScore(deadStones) {
+      const b = deadStones?.size
+        ? this.board.map((row, r) => row.map((stone, c) => deadStones.has(`${r},${c}`) ? EMPTY : stone))
+        : this.board;
       let blackStones = 0;
       let whiteStones = 0;
 

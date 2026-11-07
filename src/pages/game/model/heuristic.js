@@ -1,6 +1,6 @@
 const GoHeuristicAI = (() => {
   'use strict';
-  const { EMPTY, WHITE, getHoshiPoints, opponentOf, formatCoord } = GoRules;
+  const { EMPTY, getHoshiPoints, opponentOf, formatCoord } = GoRules;
 
   return class GoHeuristicAI {
     constructor(game) {
@@ -355,8 +355,8 @@ const GoHeuristicAI = (() => {
     }
 
     // Выбор хода компьютером с учетом уровня сложности
-    findBestMove(difficulty) {
-      const candidates = this.findBestMoves(WHITE, 6, difficulty);
+    findBestMove(color, difficulty) {
+      const candidates = this.findBestMoves(color, 6, difficulty);
       if (candidates.length === 0) return null;
 
       if (candidates[0].score < -300 && this.game.moveNumber > 25) {

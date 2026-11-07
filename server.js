@@ -97,7 +97,12 @@ function sendJson(response, status, data) {
   response.end(JSON.stringify(data));
 }
 
-const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript' };
+const mime = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml; charset=utf-8'
+};
 const server = http.createServer(async (request, response) => {
   const { pathname } = new URL(request.url, 'http://localhost');
 
@@ -136,10 +141,15 @@ const server = http.createServer(async (request, response) => {
 
   const asset = pathname === '/' ? '/index.html' : pathname;
   const isGameAsset = asset.startsWith('/src/pages/game/') && /\.(css|js)$/.test(asset);
-  if (request.method === 'GET' && (asset === '/index.html' || isGameAsset)) {
+  const isFavicon = asset === '/favicon.svg' || asset === '/favicon.ico';
+  if (request.method === 'GET' && (asset === '/index.html' || isGameAsset || isFavicon)) {
     try {
-      const content = await fs.promises.readFile(path.join(__dirname, asset));
-      response.writeHead(200, { 'Content-Type': `${mime[path.extname(asset)]}; charset=utf-8` });
+      const filePath = isFavicon && asset === '/favicon.ico' && !fs.existsSync(path.join(__dirname, 'favicon.ico'))
+        ? path.join(__dirname, 'favicon.svg')
+        : path.join(__dirname, asset);
+      const ext = path.extname(filePath);
+      const content = await fs.promises.readFile(filePath);
+      response.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
       response.end(content);
       return;
     } catch {

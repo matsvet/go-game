@@ -1,6 +1,6 @@
 'use strict';
 
-function createBoardView(game, { canPlay, onPlay }) {
+function createBoardView({ canPlay, onPlay }) {
   const { EMPTY, BLACK, LETTERS, getHoshiPoints } = GoRules;
 
   const SVG_SIZE = 540;
@@ -19,6 +19,10 @@ function createBoardView(game, { canPlay, onPlay }) {
   const libertiesLayer = document.getElementById('libertiesLayer');
   const ghostLayer = document.getElementById('ghostLayer');
   const hitTargetsLayer = document.getElementById('hitTargetsLayer');
+  let game;
+  let renderedBoard = null;
+  let renderedDeadStones = null;
+  let renderedSize = null;
 
   function svgElement(tag, attributes) {
     const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -180,14 +184,23 @@ function createBoardView(game, { canPlay, onPlay }) {
     gridLayer.appendChild(txt);
   }
 
-  function renderBoard({ showLiberties, hintMoves, territoryMap }) {
-    stonesLayer.replaceChildren();
+  function renderBoard({ position, showLiberties, hintMoves, animateOpponentMove, territoryMap, deadStones }) {
+    game = position;
+    if (game.size !== renderedSize) {
+      buildBoardGrid();
+      renderedSize = game.size;
+    }
     libertiesLayer.replaceChildren();
     highlightLayer.replaceChildren();
 
     const { stoneRadius } = getBoardLayout(game.size);
     drawHints(hintMoves, stoneRadius);
-    drawStones(stoneRadius);
+    if (game.board !== renderedBoard || deadStones !== renderedDeadStones) {
+      stonesLayer.replaceChildren();
+      drawStones(stoneRadius, animateOpponentMove, deadStones);
+      renderedBoard = game.board;
+      renderedDeadStones = deadStones;
+    }
     if (showLiberties && !game.isGameOver) drawLiberties(stoneRadius);
     if (territoryMap) drawTerritory(territoryMap, stoneRadius);
   }
@@ -239,12 +252,16 @@ function createBoardView(game, { canPlay, onPlay }) {
     });
   }
 
-  function drawStones(stoneRadius) {
+  function drawStones(stoneRadius, animateOpponentMove, deadStones) {
+    const lastPlacement = document.createDocumentFragment();
     for (let r = 0; r < game.size; r++) {
       for (let c = 0; c < game.size; c++) {
         const color = game.board[r][c];
         if (color !== EMPTY) {
           const { x, y } = coordToSvg(r, c);
+          const isLastMove = game.lastMove?.r === r && game.lastMove.c === c;
+          const isDead = deadStones?.has(`${r},${c}`);
+          const isOpponentPlacement = isLastMove && animateOpponentMove;
 
           const stone = svgElement('circle', {
             cx: x,
@@ -252,13 +269,20 @@ function createBoardView(game, { canPlay, onPlay }) {
             r: stoneRadius,
             fill: color === BLACK ? 'url(#blackStoneGrad)' : 'url(#whiteStoneGrad)',
             filter: 'url(#stoneShadow)',
-            'class': 'stone stone-appear'
+            'class': isDead ? 'stone dead-stone' : 'stone'
           });
 
-          stonesLayer.appendChild(stone);
+          if (isOpponentPlacement) {
+            stone.classList.add('opponent-placement');
+            // Keep the incoming stone inside the SVG near its top and right edges.
+            stone.style.setProperty('--stone-entry-x', x + 3.1 * stoneRadius < SVG_SIZE ? '95%' : '-95%');
+            stone.style.setProperty('--stone-entry-y', y > 4 * stoneRadius ? '-125%' : '125%');
+          } else if (isLastMove && !deadStones) {
+            stone.classList.add('stone-appear');
+          }
 
           // Маркер последнего сделанного хода (кольцо)
-          if (game.lastMove && game.lastMove.r === r && game.lastMove.c === c) {
+          if (isLastMove && !deadStones) {
             const ring = svgElement('circle', {
               cx: x,
               cy: y,
@@ -268,11 +292,14 @@ function createBoardView(game, { canPlay, onPlay }) {
               'stroke-width': '2.5',
               'class': 'last-move-ring'
             });
-            stonesLayer.appendChild(ring);
+            lastPlacement.append(stone, ring);
+          } else {
+            stonesLayer.appendChild(stone);
           }
         }
       }
     }
+    stonesLayer.appendChild(lastPlacement);
   }
 
   function drawLiberties(stoneRadius) {
@@ -465,5 +492,5 @@ function createBoardView(game, { canPlay, onPlay }) {
     ghostLayer.innerHTML = '';
   }
 
-  return { build: buildBoardGrid, render: renderBoard, preview: onIntersectionHover, clearGhost };
+  return { render: renderBoard, preview: onIntersectionHover, clearGhost };
 }

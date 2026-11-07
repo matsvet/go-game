@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Background subtle gradient -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#261f18"/>
+      <stop offset="100%" stop-color="#14110e"/>
+    </linearGradient>
+
+    <!-- Black stone gradient -->
+    <radialGradient id="blackStone" cx="35%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#555555"/>
+      <stop offset="40%" stop-color="#242424"/>
+      <stop offset="80%" stop-color="#111111"/>
+      <stop offset="100%" stop-color="#040404"/>
+    </radialGradient>
+
+    <!-- White stone gradient -->
+    <radialGradient id="whiteStone" cx="35%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#eeeeee"/>
+      <stop offset="85%" stop-color="#cccccc"/>
+      <stop offset="100%" stop-color="#9a9a9f"/>
+    </radialGradient>
+
+    <!-- Stone drop shadow -->
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="1" dy="2.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+  </defs>
+
+  <!-- Board background -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bgGrad)" stroke="#e5a93c" stroke-width="2.5"/>
+
+  <!-- Go board grid lines -->
+  <g stroke="#9c7a56" stroke-width="1.8" stroke-linecap="round" opacity="0.9">
+    <line x1="16" y1="16" x2="48" y2="16"/>
+    <line x1="16" y1="32" x2="48" y2="32"/>
+    <line x1="16" y1="48" x2="48" y2="48"/>
+    <line x1="16" y1="16" x2="16" y2="48"/>
+    <line x1="32" y1="16" x2="32" y2="48"/>
+    <line x1="48" y1="16" x2="48" y2="48"/>
+  </g>
+
+  <!-- Center star point (hoshi) -->
+  <circle cx="32" cy="32" r="2.2" fill="#e5a93c"/>
+
+  <!-- Black stone -->
+  <circle cx="23" cy="39" r="13.5" fill="url(#blackStone)" filter="url(#shadow)"/>
+  <ellipse cx="20" cy="35" rx="5" ry="2.5" fill="#ffffff" opacity="0.18" transform="rotate(-25 20 35)"/>
+
+  <!-- White stone -->
+  <circle cx="41" cy="25" r="13.5" fill="url(#whiteStone)" filter="url(#shadow)"/>
+  <ellipse cx="38" cy="21" rx="5" ry="2.5" fill="#ffffff" opacity="0.6" transform="rotate(-25 38 21)"/>
+</svg>

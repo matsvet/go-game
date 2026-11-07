@@ -251,6 +251,40 @@ header {
   animation: pulse 1.6s infinite ease-in-out;
 }
 
+.banner-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.banner-meta-sep {
+  opacity: 0.35;
+  font-size: 0.72rem;
+}
+
+.timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: #d1d5db;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-badge strong {
+  color: #fff;
+  font-weight: 700;
+}
+
+.timer-icon {
+  font-size: 0.75rem;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.45; transform: scale(0.85); }
@@ -428,6 +462,11 @@ header {
   box-shadow: var(--shadow-sm);
 }
 
+.board-wrapper > .panel-card {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
 .card-title {
   font-size: 0.78rem;
   font-weight: 700;
@@ -538,11 +577,61 @@ header {
   font-size: 0.95rem;
 }
 
+.player-timer {
+  margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.2s ease;
+}
+
+.player-timer-icon {
+  font-size: 0.72rem;
+}
+
+.player-timer-val {
+  font-weight: 700;
+  color: #e5e7eb;
+}
+
+.player-card.active .player-timer {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fde68a;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+}
+
+.player-card.active .player-timer-val {
+  color: #fff;
+}
+
 /* Кнопки управления ходом */
 .actions-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.game-tool-note {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.game-tool-score {
+  margin: 12px 0;
+  font-weight: 600;
+}
+
+.dead-stone {
+  opacity: 0.24;
 }
 
 .btn {
@@ -983,6 +1072,28 @@ input:checked + .slider:before {
   color: #d1d5db;
 }
 
+.confirm-dialog {
+  width: min(440px, calc(100% - 32px));
+  margin: auto;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+}
+
+.confirm-dialog .modal-content {
+  transform: none;
+}
+
+.confirm-actions {
+  margin-top: 16px;
+}
+
 .rule-card {
   background: rgba(255, 255, 255, 0.035);
   border-left: 3px solid var(--accent);
@@ -1044,6 +1155,53 @@ input:checked + .slider:before {
   font-weight: 700;
   font-size: 1.1rem;
   margin-bottom: 14px;
+}
+
+.game-duration-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  margin-bottom: 14px;
+}
+
+.duration-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.duration-icon {
+  font-size: 1.35rem;
+}
+
+.duration-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.duration-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.duration-val {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.duration-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border-color);
 }
 
 /* Всплывающие уведомления (Toast) */
@@ -1133,6 +1291,37 @@ input:checked + .slider:before {
   to { transform: scale(1); opacity: 1; }
 }
 
+#stonesLayer {
+  --opponent-placement-duration: 440ms;
+}
+
+.opponent-placement {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: opponentPlace var(--opponent-placement-duration) cubic-bezier(0.2, 0.65, 0.25, 1);
+}
+
+.opponent-placement + .last-move-ring {
+  opacity: 0;
+  animation-delay: var(--opponent-placement-duration);
+}
+
+@keyframes opponentPlace {
+  from {
+    transform: translate(var(--stone-entry-x), var(--stone-entry-y)) scale(1.12);
+    opacity: 0.35;
+  }
+  to { transform: translate(0, 0) scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opponent-placement,
+  .opponent-placement + .last-move-ring {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .engine-status {
   background: rgba(16, 185, 129, 0.16);
   color: #6ee7b7;
@@ -1159,4 +1348,24 @@ input:checked + .slider:before {
 .hint-variation code {
   color: #38bdf8;
   font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .board-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  .banner-meta {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .game-duration-card {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .duration-divider {
+    display: none;
+  }
 }

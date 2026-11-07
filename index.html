@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Тренажер Го (Вэйци) — 9х9 для новичков</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="src/pages/game/ui/game.css">
 </head>
 <body>
@@ -32,6 +33,14 @@
 
     <!-- Левая колонка: Игровое поле -->
     <div class="board-wrapper">
+      <section class="panel-card" id="savedGamePrompt" hidden>
+        <div class="card-title">Сохранённая партия</div>
+        <p class="game-tool-score" id="savedGameDetails"></p>
+        <div class="actions-grid">
+          <button class="btn btn-primary" id="btnContinueSaved">Продолжить</button>
+          <button class="btn btn-secondary" id="btnDiscardSaved">Новая партия</button>
+        </div>
+      </section>
       <div class="board-outer-bezel">
         <div class="board-frame" id="boardFrame">
           <!-- Интерактивная векторная SVG доска Го -->
@@ -86,8 +95,46 @@
           <div class="banner-dot" id="statusDot"></div>
           <span id="statusMessage">Ход Черных (вы)</span>
         </div>
-        <div id="moveCounterText" style="color: var(--text-muted); font-size: 0.82rem;">Ход: 1</div>
+        <div class="banner-meta">
+          <span id="moveCounterText" class="banner-meta-item">Ход: 1</span>
+          <span class="banner-meta-sep" aria-hidden="true">•</span>
+          <span class="banner-meta-item timer-badge" id="moveTimerBadge" title="Время на текущий ход">
+            <span class="timer-icon">⏱</span> Ход: <strong id="moveTimerText">00:00</strong>
+          </span>
+          <span class="banner-meta-sep" aria-hidden="true">•</span>
+          <span class="banner-meta-item timer-badge" id="gameTimerBadge" title="Общая длительность партии">
+            <span class="timer-icon">⏳</span> Партия: <strong id="gameTimerText">00:00</strong>
+          </span>
+        </div>
       </div>
+
+      <section class="panel-card" id="scoringControls" hidden>
+        <div class="card-title">Подсчёт очков</div>
+        <p class="game-tool-note">Нажми на мёртвую группу, чтобы исключить её из подсчёта. Повторное нажатие вернёт группу. Если позиция ещё спорная, продолжи игру.</p>
+        <p class="game-tool-score" id="scorePreview" aria-live="polite"></p>
+        <div class="actions-grid">
+          <button class="btn btn-secondary" id="btnResumePlay">Продолжить игру</button>
+          <button class="btn btn-primary" id="btnConfirmScore">Подтвердить счёт</button>
+        </div>
+      </section>
+
+      <section class="panel-card" id="reviewControls" hidden>
+        <div class="card-title">Разбор партии</div>
+        <p class="game-tool-score" id="reviewPosition" aria-live="polite"></p>
+        <div class="actions-grid">
+          <button class="btn btn-secondary" id="btnReviewPrev">Назад</button>
+          <button class="btn btn-secondary" id="btnReviewNext">Вперёд</button>
+          <button class="btn btn-primary" id="btnReviewHint">Что здесь сыграть?</button>
+          <button class="btn btn-secondary" id="btnExitReview">К результату</button>
+        </div>
+        <div class="difficulty-block" id="reviewLineControls" hidden>
+          <p class="game-tool-score" id="reviewLinePosition" aria-live="polite"></p>
+          <div class="actions-grid">
+            <button class="btn btn-secondary" id="btnReviewLineBack">К позиции</button>
+            <button class="btn btn-secondary" id="btnReviewLineNext">Следующий ход варианта</button>
+          </div>
+        </div>
+      </section>
 
       <!-- Карусель подсказок, правил и лайфхаков Го (с минутным таймером и лоадером) -->
       <div class="tips-carousel" id="tipsCarousel" title="Наведите курсор, чтобы приостановить смену подсказки">
@@ -120,7 +167,7 @@
     <!-- Правая колонка: Панель управления и статистика -->
     <aside class="sidebar">
 
-      <!-- Карточка выбора размера доски -->
+      <!-- Настройки новой партии -->
       <div class="panel-card" style="margin-bottom: 14px;">
         <div class="card-title">
           <span>Размер доски</span>
@@ -133,6 +180,16 @@
           <button class="diff-btn" data-size="15" title="15×15: Промежуточный формат">15×15</button>
           <button class="diff-btn" data-size="19" title="19×19: Классическая турнирная доска Го">19×19</button>
         </div>
+        <div class="difficulty-block" id="playerColorControl">
+          <div class="diff-header">
+            <span class="diff-title" id="playerColorTitle">Твой цвет</span>
+            <span class="diff-badge">Чёрные ходят первыми</span>
+          </div>
+          <div class="difficulty-control" role="group" aria-labelledby="playerColorTitle" style="grid-template-columns: 1fr 1fr;">
+            <button class="diff-btn active" data-player-color="black" aria-pressed="true" title="Начать новую партию за чёрных">За чёрных</button>
+            <button class="diff-btn" data-player-color="white" aria-pressed="false" title="Начать новую партию за белых">За белых</button>
+          </div>
+        </div>
       </div>
 
       <!-- Карточка статуса партии -->
@@ -143,21 +200,25 @@
         </div>
 
         <div class="players-grid">
-          <!-- Черные (Игрок) -->
+          <!-- Черные -->
           <div class="player-card active" id="cardBlack">
             <span class="turn-badge">ХОД</span>
             <div class="player-stone black"></div>
             <div class="player-info">
               <div class="player-name">Черные</div>
-              <div class="player-role" id="blackRoleLabel">Игрок</div>
+              <div class="player-role" id="blackRoleLabel">Вы</div>
             </div>
             <div class="prisoners-box" title="Пленники (захваченные белые камни)">
               <span>Пленники:</span>
               <span class="prisoners-count" id="blackPrisoners">0</span>
             </div>
+            <div class="player-timer" id="blackTimer" title="Время на ход">
+              <span class="player-timer-icon">⏱</span>
+              <span class="player-timer-val" id="blackTimerVal">00:00</span>
+            </div>
           </div>
 
-          <!-- Белые (Компьютер / Игрок 2) -->
+          <!-- Белые -->
           <div class="player-card" id="cardWhite">
             <span class="turn-badge">ХОД</span>
             <div class="player-stone white"></div>
@@ -169,18 +230,22 @@
               <span>Пленники:</span>
               <span class="prisoners-count" id="whitePrisoners">0</span>
             </div>
+            <div class="player-timer" id="whiteTimer" title="Время на ход">
+              <span class="player-timer-icon">⏱</span>
+              <span class="player-timer-val" id="whiteTimerVal">00:00</span>
+            </div>
           </div>
         </div>
 
         <!-- Индикатор баланса сил (Оценка позиции) -->
         <div class="lead-bar-wrapper">
           <div class="lead-bar-header">
-            <span id="leadBlackPercent">Черные 50%</span>
-            <span id="leadStatusText">Равная позиция</span>
-            <span id="leadWhitePercent">Белые 50%</span>
+            <span id="leadBlackPercent">Чёрные</span>
+            <span id="leadStatusText">Нет оценки позиции</span>
+            <span id="leadWhitePercent">Белые</span>
           </div>
           <div class="lead-progress-track">
-            <div class="lead-progress-fill" id="leadProgressFill" style="width: 50%;"></div>
+            <div class="lead-progress-fill" id="leadProgressFill" style="width: 0;"></div>
           </div>
         </div>
 
@@ -213,7 +278,7 @@
           <label class="toggle-item">
             <div class="toggle-label">
               <span class="toggle-title">Против компьютера</span>
-              <span class="toggle-desc">Компьютер играет белыми</span>
+              <span class="toggle-desc">Компьютер играет за другой цвет</span>
             </div>
             <div class="switch">
               <input type="checkbox" id="chkVsAi" checked>
@@ -263,8 +328,17 @@
 
       <!-- Кнопка подсчета очков -->
       <button class="btn btn-primary" id="btnScoreNow">
-        <span>🏁</span> Завершить и подсчитать очки
+        <span>🏁</span><span id="scoreButtonLabel">Завершить и подсчитать очки</span>
       </button>
+
+      <div class="panel-card">
+        <div class="card-title">Файл партии</div>
+        <div class="actions-grid">
+          <button class="btn btn-secondary" id="btnSaveGameFile" disabled>Сохранить в файл</button>
+          <button class="btn btn-secondary" id="btnOpenGameFile">Открыть файл</button>
+          <input type="file" id="gameFileInput" accept=".json,application/json" hidden>
+        </div>
+      </div>
 
     </aside>
 
@@ -305,7 +379,7 @@
 
         <div class="rule-card">
           <h3>🏁 6. Завершение партии</h3>
-          <p>Когда оба игрока по очереди нажимают <strong>«Пас»</strong>, игра завершается. Подсчитываются: окружённая территория и камни на доске. Белые получают коми за второй ход (5.5, 6.5 или 7.5 очка в зависимости от размера доски).</p>
+          <p>После двух пасов начинается подсчёт. Отметьте мёртвые группы и подтвердите результат или вернитесь к игре. Очки дают камни на доске и окружённая территория. Белые получают коми по размеру доски.</p>
         </div>
 
         <div class="rule-card" style="border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.08);">
@@ -326,6 +400,24 @@
       <div class="modal-body">
         <div class="winner-banner" id="winnerAnnouncement">Победа Черных!</div>
         
+        <div class="game-duration-card" id="gameDurationSummary">
+          <div class="duration-item">
+            <span class="duration-icon">⏱</span>
+            <div class="duration-text">
+              <span class="duration-label">Время партии</span>
+              <strong class="duration-val" id="finalGameDuration">00:00</strong>
+            </div>
+          </div>
+          <div class="duration-divider"></div>
+          <div class="duration-item">
+            <span class="duration-icon">🎯</span>
+            <div class="duration-text">
+              <span class="duration-label">Сделано ходов</span>
+              <strong class="duration-val" id="finalMoveCount">0</strong>
+            </div>
+          </div>
+        </div>
+
         <div class="score-summary">
           <div class="score-card">
             <div style="font-weight: 700; color: #fff;">Черные</div>
@@ -347,12 +439,28 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" id="btnRestartFromModal" style="margin-top: 10px;">
-          <span>🔄</span> Начать новую партию
-        </button>
+        <div class="actions-grid">
+          <button class="btn btn-secondary" id="btnReviewGame">Разобрать партию</button>
+          <button class="btn btn-primary" id="btnRestartFromModal">Начать новую партию</button>
+        </div>
       </div>
     </div>
   </div>
+
+  <dialog class="confirm-dialog" id="confirmGameAction" aria-labelledby="confirmGameTitle" aria-describedby="confirmGameMessage">
+    <form class="modal-content" method="dialog">
+      <div class="modal-header">
+        <h2 class="modal-title" id="confirmGameTitle"></h2>
+      </div>
+      <div class="modal-body">
+        <p id="confirmGameMessage"></p>
+        <div class="actions-grid confirm-actions">
+          <button class="btn btn-secondary" value="cancel" autofocus>Отмена</button>
+          <button class="btn btn-danger" id="btnConfirmGameAction" value="confirm"></button>
+        </div>
+      </div>
+    </form>
+  </dialog>
 
   <!-- Контейнер всплывающих уведомлений -->
   <div id="toastContainer"></div>
@@ -360,6 +468,7 @@
   <script src="src/pages/game/model/rules.js"></script>
   <script src="src/pages/game/model/heuristic.js"></script>
   <script src="src/pages/game/api/katago.js"></script>
+  <script src="src/pages/game/api/game-save.js"></script>
   <script src="src/pages/game/ui/sound.js"></script>
   <script src="src/pages/game/ui/board.js"></script>
   <script src="src/pages/game/ui/game-panel.js"></script>

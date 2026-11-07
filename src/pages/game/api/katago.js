@@ -4,7 +4,10 @@ const GoKataGo = (() => {
   const visits = { easy: 5, medium: 35, hard: 150, god: 600 };
 
   async function status() {
-    if (location.protocol === 'file:') return null;
+    if (typeof location !== 'undefined') {
+      if (location.protocol === 'file:') return null;
+      if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return null;
+    }
     try {
       const response = await fetch('/api/status');
       return response.ok ? (await response.json()).active === true : null;
@@ -74,5 +77,5 @@ const GoKataGo = (() => {
     return { candidates, evaluation: evaluation(data.rootInfo, turn) };
   }
 
-  return { status, analyze };
+  return { status, analyze, parsePoint };
 })();
